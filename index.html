@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NusaPay Web3 v3 // Direct RPC Blockchain Connected Gateway</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: { 500: '#10b981', 600: '#059669' },
+                        poly: { 400: '#a855f7', 500: '#8247e5', 600: '#6f36d6' }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #030712; color: #f3f4f6; }
+        .font-mono-code { font-family: 'JetBrains Mono', monospace; }
+        .glow-emerald { box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.2); }
+        .glow-purple { box-shadow: 0 0 25px -5px rgba(130, 71, 229, 0.25); }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between">
+
+    <!-- HEADER / NAVBAR -->
+    <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-poly-600 to-emerald-500 flex items-center justify-center shadow-lg">
+                    <i class="fa-solid fa-network-wired text-white text-lg"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold text-lg text-white">NusaPay Web3</span>
+                        <span class="px-2 py-0.5 text-[10px] font-semibold rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono-code">v3.0 LIVE RPC NODE</span>
+                    </div>
+                    <p class="text-[10px] text-slate-400 font-mono-code hidden sm:block">Direct Polygon Node RPC + EIP-6963 Wallet Engine</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-2 sm:space-x-3">
+                <!-- LIVE BLOCKCHAIN RPC TELEMETRY PILL -->
+                <div class="hidden lg:flex items-center space-x-2 px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-[11px] font-mono-code">
+                    <span id="rpcPulseDot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                    <span class="text-slate-400">Block:</span>
+                    <span id="liveBlockNumber" class="text-emerald-400 font-semibold">Syncing...</span>
+                    <span class="text-slate-600">|</span>
+                    <span class="text-slate-400">Gas:</span>
+                    <span id="liveGasPrice" class="text-poly-400 font-semibold">-- Gwei</span>
+                </div>
+
+                <!-- Network Selector -->
+                <div class="relative">
+                    <button id="networkSelectBtn" onclick="toggleNetworkDropdown()" class="flex items-center space-x-2 px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 hover:border-slate-700 text-xs font-medium">
+                        <span id="netDot" class="w-2 h-2 rounded-full bg-amber-400"></span>
+                        <span id="netLabelName">Amoy Testnet</span>
+                        <i class="fa-solid fa-chevron-down text-[10px] text-slate-500"></i>
+                    </button>
+
+                    <div id="networkDropdown" class="hidden absolute right-0 mt-2 w-64 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-2 z-50">
+                        <div class="text-[10px] font-bold uppercase text-slate-400 px-3 py-2">Pilih Node Blockchain Polygon</div>
+                        <button onclick="switchPolygonNetwork('80002')" class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-800 flex items-center justify-between text-xs">
+                            <div>
+                                <div class="font-semibold text-slate-200">Polygon Amoy Testnet</div>
+                                <div class="text-[10px] text-slate-500 font-mono-code">Chain ID: 80002 (Uji Coba)</div>
+                            </div>
+                            <span id="checkAmoy" class="text-emerald-400"><i class="fa-solid fa-check"></i></span>
+                        </button>
+                        <button onclick="switchPolygonNetwork('137')" class="w-full text-left px-3 py-2.5 rounded-xl hover:bg-slate-800 flex items-center justify-between text-xs">
+                            <div>
+                                <div class="font-semibold text-slate-200">Polygon PoS Mainnet</div>
+                                <div class="text-[10px] text-emerald-400 font-mono-code">Chain ID: 137 (Uang Asli)</div>
+                            </div>
+                            <span id="checkMainnet" class="text-emerald-400 hidden"><i class="fa-solid fa-check"></i></span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Connect Wallet Button -->
+                <button id="connectBtn" onclick="openWalletModal()" class="flex items-center space-x-2 bg-gradient-to-r from-poly-600 to-emerald-600 hover:from-poly-500 hover:to-emerald-500 text-white font-semibold text-xs sm:text-sm px-4 py-2 rounded-xl transition shadow-md">
+                    <i class="fa-solid fa-wallet"></i>
+                    <span id="connectBtnText">Hubungkan Wallet</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div id="toastContainer" class="fixed top-20 right-4 z-50 flex flex-col space-y-2 max-w-sm w-full pointer-events-none"></div>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full flex-grow space-y-6">
+
+        <!-- LIVE NODE CONNECTION BAR -->
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div class="flex items-center gap-2.5">
+                <span id="nodeStatusBadge" class="px-2.5 py-0.5 rounded-full text-[10px] font-mono-code font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    CONNECTING TO RPC...
+                </span>
+                <span class="text-slate-400 font-mono-code text-[11px]" id="activeRpcUrlText">Endpoint: https://rpc-amoy.polygon.technology</span>
+            </div>
+            <div class="flex items-center gap-4 font-mono-code text-[11px] text-slate-400">
+                <span>Block Height: <strong id="mobileBlockHeight" class="text-emerald-400">#--</strong></span>
+                <span>Base Fee: <strong id="mobileGasPrice" class="text-poly-400">-- Gwei</strong></span>
+            </div>
+        </div>
+
+        <!-- ALERT PROTOKOL LOKAL (FILE://) -->
+        <div id="protocolWarning" class="hidden p-4 rounded-2xl bg-amber-950/60 border border-amber-500/50 text-amber-200 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div class="flex items-start gap-3">
+                <i class="fa-solid fa-circle-info text-amber-400 text-base mt-0.5"></i>
+                <div>
+                    <strong class="block text-sm text-white mb-0.5">Mode Pembacaan Blockchain Aktif (Inspeksi Saldo & TxHash Berfungsi)</strong>
+                    Untuk menandatangani pembayaran dengan ekstensi MetaMask, jalankan lewat server lokal (<code class="text-emerald-400">http://localhost:8000</code>) agar browser mengizinkan pop-up wallet.
+                </div>
+            </div>
+            <button onclick="copyText('python -m http.server 8000', 'Perintah server disalin!')" class="bg-slate-900 hover:bg-slate-800 border border-slate-700 px-3 py-2 rounded-xl font-mono-code text-emerald-400 text-xs whitespace-nowrap">
+                python -m http.server 8000 <i class="fa-regular fa-copy ml-1"></i>
+            </button>
+        </div>
+
+        <!-- WALLET & ON-CHAIN ADDRESS INSPECTOR -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <div class="md:col-span-8 bg-slate-900 border border-slate-800 rounded-2xl p-6 glow-purple flex flex-col justify-between space-y-5">
+                <div>
+                    <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs font-bold uppercase text-slate-400">Dompet & Pemantau Saldo On-Chain</span>
+                            <span id="walletStateBadge" class="px-2 py-0.5 rounded text-[10px] font-mono-code bg-slate-800 text-slate-300 border border-slate-700">Mode Watch / Belum Sign-In</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <button onclick="queryWatchedAddressBalances()" class="text-xs text-poly-400 hover:text-poly-300 flex items-center gap-1">
+                                <i class="fa-solid fa-rotate"></i> Cek Ulang RPC
+                            </button>
+                            <button id="disconnectBtn" onclick="disconnectWallet()" class="hidden text-xs text-red-400 hover:text-red-300 flex items-center gap-1">
+                                <i class="fa-solid fa-power-off"></i> Putuskan
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- INPUT ALAMAT UNTUK CEK SALDO LANGSUNG VIA RPC NODE (TANPA PERLU EKSTENSI) -->
+                    <div class="bg-slate-950 rounded-xl p-3 border border-slate-800 space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="text-[10px] text-slate-400">Alamat Wallet Aktif / Alamat Publik (0x...) yang Dipantau di Node Polygon:</span>
+                            <button id="copyAddressBtn" onclick="copyUserAddress()" class="hidden text-[11px] text-poly-400 hover:underline font-mono-code">
+                                <i class="fa-regular fa-copy"></i> Salin
+                            </button>
+                        </div>
+                        <div class="flex gap-2">
+                            <input type="text" id="watchedAddressInput" placeholder="Hubungkan MetaMask atau tempel alamat 0x... untuk cek saldo live di blockchain" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs font-mono-code text-slate-200 focus:border-poly-500 focus:outline-none">
+                            <button onclick="queryWatchedAddressBalances()" class="bg-poly-600 hover:bg-poly-500 text-white text-xs font-semibold px-3.5 py-2 rounded-lg whitespace-nowrap transition">
+                                Cek Saldo
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                        <div class="flex justify-between text-xs text-slate-400 mb-1">
+                            <span>Saldo USDC On-Chain</span>
+                            <button onclick="watchUsdcAsset()" class="font-mono-code text-[10px] px-2 py-0.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 rounded transition">
+                                + Import ke Wallet
+                            </button>
+                        </div>
+                        <div class="text-2xl font-bold font-mono-code text-emerald-400" id="usdcBalanceDisplay">$0.00 <span class="text-xs font-normal">USDC</span></div>
+                        <div class="text-[10px] text-slate-500 mt-1 font-mono-code" id="usdcContractDisplay">Kontrak: 0x41E9...7582</div>
+                    </div>
+
+                    <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+                        <div class="flex justify-between text-xs text-slate-400 mb-1">
+                            <span>Saldo Gas Fee (POL)</span>
+                            <span class="font-mono-code text-[10px] px-1.5 py-0.5 bg-poly-500/20 text-poly-400 rounded">Native POL</span>
+                        </div>
+                        <div class="text-2xl font-bold font-mono-code text-slate-100" id="polBalanceDisplay">0.0000 <span class="text-xs font-normal">POL</span></div>
+                        <div class="text-[10px] text-slate-500 mt-1">Dibaca langsung dari RPC Node Polygon</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RESOURCE & FAUCET CARD -->
+            <div class="md:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between">
+                <div>
+                    <h3 class="text-xs font-bold uppercase text-slate-400 mb-2">Faucet & Explorer Resmi</h3>
+                    <p class="text-xs text-slate-400 mb-4">Klaim token uji coba gratis untuk jaringan <strong>Amoy Testnet</strong> atau periksa status blok di PolygonScan:</p>
+                </div>
+                <div class="space-y-2.5">
+                    <a href="https://faucet.circle.com/" target="_blank" class="w-full bg-slate-800 hover:bg-slate-700 text-emerald-300 font-semibold text-xs py-2.5 rounded-xl border border-emerald-500/30 flex items-center justify-center gap-2 transition">
+                        <i class="fa-solid fa-faucet"></i> Faucet Resmi USDC (Circle)
+                    </a>
+                    <a href="https://faucet.polygon.technology/" target="_blank" class="w-full bg-slate-800 hover:bg-slate-700 text-poly-300 font-semibold text-xs py-2.5 rounded-xl border border-poly-500/30 flex items-center justify-center gap-2 transition">
+                        <i class="fa-solid fa-gas-pump"></i> Faucet Gas POL (Polygon)
+                    </a>
+                    <a id="explorerBtn" href="https://amoy.polygonscan.com" target="_blank" class="w-full bg-slate-950 hover:bg-slate-800 text-slate-400 text-xs py-2.5 rounded-xl border border-slate-800 text-center block font-mono-code transition">
+                        <i class="fa-solid fa-arrow-up-right-from-square mr-1"></i> Buka PolygonScan Explorer
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB NAVIGATION -->
+        <div class="flex border-b border-slate-800 overflow-x-auto space-x-2">
+            <button onclick="switchTab('checkout')" id="tabBtnCheckout" class="px-4 py-3 text-xs sm:text-sm font-semibold border-b-2 border-emerald-500 text-emerald-400 flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-credit-card"></i>
+                <span>1. Checkout & Pembayaran</span>
+            </button>
+            <button onclick="switchTab('verifier')" id="tabBtnVerifier" class="px-4 py-3 text-xs sm:text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-magnifying-glass-dollar"></i>
+                <span>2. Verifikator TxHash On-Chain</span>
+            </button>
+            <button onclick="switchTab('invoice')" id="tabBtnInvoice" class="px-4 py-3 text-xs sm:text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 whitespace-nowrap">
+                <i class="fa-solid fa-qrcode"></i>
+                <span>3. Generator Link & QR Tagihan</span>
+            </button>
+        </div>
+
+        <!-- TAB 1: CHECKOUT & RIWAYAT -->
+        <div id="tabCheckout" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-6 glow-emerald space-y-5">
+                <div class="flex justify-between items-start border-b border-slate-800 pb-4">
+                    <div>
+                        <h2 class="text-base font-bold text-white">Checkout Pembayaran On-Chain</h2>
+                        <p class="text-xs text-slate-400">Penyelesaian instan Peer-to-Peer di atas blockchain Polygon.</p>
+                    </div>
+                    <span id="invoiceOrderTag" class="hidden px-2.5 py-1 rounded-lg text-xs font-mono-code bg-poly-500/20 text-poly-300 border border-poly-500/30"></span>
+                </div>
+
+                <!-- Paket Cepat -->
+                <div>
+                    <label class="text-[11px] font-bold uppercase text-slate-400 block mb-2">Pilih Paket Layanan:</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button type="button" onclick="applyPreset('Server Lab Cyber', '10.00')" class="p-2.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-left transition">
+                            <div class="text-[11px] font-semibold text-slate-200 truncate">Lab Cyber</div>
+                            <div class="text-xs font-mono-code text-emerald-400 font-bold">$10.00</div>
+                        </button>
+                        <button type="button" onclick="applyPreset('Audit Smart Contract', '25.00')" class="p-2.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-left transition">
+                            <div class="text-[11px] font-semibold text-slate-200 truncate">Audit Web3</div>
+                            <div class="text-xs font-mono-code text-emerald-400 font-bold">$25.00</div>
+                        </button>
+                        <button type="button" onclick="applyPreset('Konsultasi Pentest', '50.00')" class="p-2.5 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-left transition">
+                            <div class="text-[11px] font-semibold text-slate-200 truncate">Pentest Pro</div>
+                            <div class="text-xs font-mono-code text-emerald-400 font-bold">$50.00</div>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <label class="text-xs font-semibold text-slate-300">Alamat Dompet Merchant (Penerima)</label>
+                            <button type="button" onclick="setMyAddressAsMerchant()" class="text-[11px] text-poly-400 hover:underline">Isi Alamat Saya (Tes Transfer)</button>
+                        </div>
+                        <input type="text" id="recipientInput" oninput="validateFormLive()" placeholder="0x..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs font-mono-code text-white focus:border-poly-500 focus:outline-none">
+                        <p id="addressErrorMsg" class="hidden text-[11px] text-red-400 mt-1"></p>
+                    </div>
+
+                    <div>
+                        <label class="text-xs font-semibold text-slate-300 block mb-1">Nominal Pembayaran (USDC)</label>
+                        <div class="relative">
+                            <span class="absolute left-4 top-3 text-slate-500 font-mono-code text-sm">$</span>
+                            <input type="number" id="amountInput" step="0.01" min="0.01" placeholder="10.00" oninput="validateFormLive()" class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-16 py-3 text-sm font-mono-code text-white focus:border-poly-500 focus:outline-none">
+                            <span class="absolute right-4 top-3.5 text-xs font-bold text-slate-400 font-mono-code">USDC</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1">
+                        <div class="flex justify-between text-[10px] text-slate-500 font-mono-code">
+                            <span>RAW HEX CALLDATA (ERC-20 TRANSFER):</span>
+                            <span>Method: 0xa9059cbb</span>
+                        </div>
+                        <div id="liveCalldataBox" class="font-mono-code text-[11px] text-poly-300 break-all">0xa9059cbb...</div>
+                    </div>
+
+                    <button id="paySubmitBtn" onclick="executeRealTransaction()" class="w-full bg-gradient-to-r from-emerald-600 to-poly-600 hover:from-emerald-500 hover:to-poly-500 text-white font-bold py-3.5 rounded-xl shadow-lg transition flex items-center justify-center gap-2 text-sm">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>Kirim Pembayaran USDC Sekarang</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- RIWAYAT TRANSAKSI PERSISTEN & EKSPOR CSV -->
+            <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-sm font-bold text-white">Riwayat Transaksi On-Chain</h3>
+                    <div class="flex items-center gap-3">
+                        <button onclick="exportHistoryCSV()" class="text-xs text-emerald-400 hover:text-emerald-300 font-mono-code">
+                            <i class="fa-solid fa-file-csv mr-1"></i>CSV
+                        </button>
+                        <button onclick="clearHistory()" class="text-xs text-slate-500 hover:text-red-400">Hapus</button>
+                    </div>
+                </div>
+                <div id="historyList" class="space-y-3 overflow-y-auto max-h-[430px] pr-1 flex-grow">
+                    <p class="text-xs text-slate-500 italic text-center py-8">Belum ada transaksi tercatat.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: LIVE ON-CHAIN TXHASH VERIFIER (DIRECT RPC NODE) -->
+        <div id="tabVerifier" class="hidden bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
+            <div>
+                <h2 class="text-base font-bold text-white">Verifikator Bukti Pembayaran Blockchain (Direct RPC Audit)</h2>
+                <p class="text-xs text-slate-400 mt-1">Masukkan <strong>Transaction Hash (0x...)</strong> dari pembeli untuk memverifikasi keaslian transfer token USDC langsung dari node blockchain Polygon.</p>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3">
+                <input type="text" id="verifyTxHashInput" placeholder="Tempel Transaction Hash (0x... 66 karakter)" class="flex-grow bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs font-mono-code text-white focus:border-poly-500 focus:outline-none">
+                <button onclick="verifyTransactionOnChain()" id="verifyTxBtn" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs px-6 py-3 rounded-xl transition whitespace-nowrap">
+                    <i class="fa-solid fa-shield-check mr-1"></i> Verifikasi di Blockchain
+                </button>
+            </div>
+
+            <div id="verifyResultBox" class="hidden bg-slate-950 border border-slate-800 rounded-2xl p-5 space-y-3 text-xs font-mono-code">
+                <!-- Hasil verifikasi RPC muncul di sini -->
+            </div>
+        </div>
+
+        <!-- TAB 3: MERCHANT INVOICE LINK & QR GENERATOR -->
+        <div id="tabInvoice" class="hidden grid grid-cols-1 md:grid-cols-12 gap-6">
+            <div class="md:col-span-6 bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+                <h2 class="text-base font-bold text-white">Buat Link & QR Pembayaran Pelanggan</h2>
+                <p class="text-xs text-slate-400">Bagikan link ini ke pembeli. Saat dibuka, form checkout otomatis terisi alamat merchant, nominal, dan nomor invoice.</p>
+
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-xs text-slate-300 block mb-1">Alamat Dompet Merchant Penerima</label>
+                        <input type="text" id="invMerchantAddr" placeholder="0x..." oninput="generatePaymentLink()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-mono-code text-white">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-xs text-slate-300 block mb-1">Nominal Tagihan (USDC)</label>
+                            <input type="number" id="invAmount" value="15.00" step="0.01" oninput="generatePaymentLink()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-mono-code text-white">
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-300 block mb-1">ID Pesanan / Invoice</label>
+                            <input type="text" id="invOrderId" value="INV-2026-001" oninput="generatePaymentLink()" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs font-mono-code text-white">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-2">
+                    <span class="text-[10px] text-slate-400 block font-mono-code">URL CHECKOUT SIAP BAGI:</span>
+                    <div id="generatedUrlBox" class="text-xs font-mono-code text-emerald-400 break-all select-all">Lengkapi alamat merchant...</div>
+                    <button onclick="copyGeneratedLink()" class="w-full bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold py-2 rounded-lg transition">
+                        <i class="fa-regular fa-copy mr-1"></i> Salin Link Pembayaran
+                    </button>
+                </div>
+            </div>
+
+            <div class="md:col-span-6 bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col items-center justify-center text-center space-y-4">
+                <div class="bg-white p-4 rounded-2xl shadow-xl">
+                    <img id="eip681QrImage" src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=ethereum:0x0000000000000000000000000000000000000000" alt="QR EIP-681" class="w-44 h-44">
+                </div>
+                <div>
+                    <h4 class="text-sm font-bold text-white">QR Code Standar Web3 (EIP-681)</h4>
+                    <p class="text-xs text-slate-400 max-w-xs mt-1">Dapat dipindai langsung menggunakan aplikasi MetaMask Mobile, Trust Wallet, atau Coinbase Wallet.</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODAL PEMILIH WALLET (EIP-6963 MULTI-WALLET DISCOVERY) -->
+    <div id="walletModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h3 class="text-sm font-bold text-white">Pilih Dompet Web3 (EIP-6963)</h3>
+                <button onclick="closeWalletModal()" class="text-slate-400 hover:text-white text-lg">&times;</button>
+            </div>
+            <p class="text-xs text-slate-400">Deteksi otomatis ekstensi dompet yang terpasang di browser Anda:</p>
+            <div id="discoveredWalletsList" class="space-y-2.5"></div>
+        </div>
+    </div>
+
+    <script>
+        /* ==========================================================================
+           KONFIGURASI JARINGAN POLYGON DENGAN MULTI-RPC FALLBACK (CORS-ENABLED)
+           ========================================================================== */
+        const NETWORKS = {
+            '80002': {
+                chainIdHex: '0x13882',
+                chainName: 'Polygon Amoy Testnet',
+                rpcUrls: [
+                    'https://rpc-amoy.polygon.technology',
+                    'https://polygon-amoy-bor-rpc.publicnode.com'
+                ],
+                blockExplorerUrls: ['https://amoy.polygonscan.com'],
+                usdcAddress: '0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582',
+                nativeCurrency: { name: 'POL', symbol: 'POL', decimals: 18 }
+            },
+            '137': {
+                chainIdHex: '0x89',
+                chainName: 'Polygon Mainnet',
+                rpcUrls: [
+                    'https://polygon-bor-rpc.publicnode.com',
+                    'https://polygon-rpc.com'
+                ],
+                blockExplorerUrls: ['https://polygonscan.com'],
+                usdcAddress: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
+                nativeCurrency: { name: 'POL', symbol: 'POL', decimals: 18 }
+            }
+        };
+
+        // Topik Event Transfer(address,address,uint256) standar ERC-20
+        const ERC20_TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+
+        let discoveredProviders = [];
+        let activeProvider = null;
+        let telemetryTimer = null;
+
+        let state = {
+            chainId: '80002',
+            account: null,
+            providerName: '',
+            usdcBalance: 0,
+            polBalance: 0,
+            history: JSON.parse(localStorage.getItem('nusapay_v3_history') || '[]')
+        };
+
+        /* ==========================================================================
+           1. DIRECT JSON-RPC BLOCKCHAIN ENGINE (TERHUBUNG LANGSUNG KE NODE POLYGON)
+           ========================================================================== */
+        async function callPolygonRpc(method, params = []) {
+            const net = NETWORKS[state.chainId];
+            let lastErr = null;
+
+            for (const url of net.rpcUrls) {
+                try {
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            jsonrpc: '2.0',
+                            id: Date.now(),
+                            method,
+                            params
+                        })
+                    });
+                    const data = await res.json();
+                    if (data.error) throw new Error(data.error.message);
+                    document.getElementById('activeRpcUrlText').innerText = `Endpoint: ${url}`;
+                    return data.result;
+                } catch (err) {
+                    lastErr = err;
+                }
+            }
+            throw lastErr || new Error("Gagal terhubung ke seluruh endpoint RPC Polygon.");
+        }
+
+        async function updateLiveNodeTelemetry() {
+            try {
+                const [blockHex, gasHex] = await Promise.all([
+                    callPolygonRpc('eth_blockNumber'),
+                    callPolygonRpc('eth_gasPrice')
+                ]);
+
+                const blockNum = parseInt(blockHex, 16).toLocaleString('id-ID');
+                const gasGwei = (parseInt(gasHex, 16) / 1e9).toFixed(1);
+
+                document.getElementById('liveBlockNumber').innerText = `#${blockNum}`;
+                document.getElementById('mobileBlockHeight').innerText = `#${blockNum}`;
+                document.getElementById('liveGasPrice').innerText = `${gasGwei} Gwei`;
+                document.getElementById('mobileGasPrice').innerText = `${gasGwei} Gwei`;
+
+                document.getElementById('rpcPulseDot').className = "w-2 h-2 rounded-full bg-emerald-400 animate-pulse";
+                const badge = document.getElementById('nodeStatusBadge');
+                badge.className = "px-2.5 py-0.5 rounded-full text-[10px] font-mono-code font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+                badge.innerText = "RPC NODE CONNECTED";
+            } catch (err) {
+                document.getElementById('rpcPulseDot').className = "w-2 h-2 rounded-full bg-red-500";
+                const badge = document.getElementById('nodeStatusBadge');
+                badge.className = "px-2.5 py-0.5 rounded-full text-[10px] font-mono-code font-semibold bg-red-500/20 text-red-400 border border-red-500/30";
+                badge.innerText = "RPC OFFLINE";
+            }
+        }
+
+        /* ==========================================================================
+           2. PEMBACAAN SALDO ON-CHAIN LANGSUNG DARI NODE (MENDUKUNG WATCH-ONLY & WALLET)
+           ========================================================================== */
+        async function queryWatchedAddressBalances() {
+            const addr = document.getElementById('watchedAddressInput').value.trim();
+            if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) {
+                showToast("Masukkan alamat EVM 0x... yang valid untuk mengecek saldo.", "error");
+                return;
+            }
+
+            const net = NETWORKS[state.chainId];
+            try {
+                const cleanAddr = addr.toLowerCase().replace('0x', '').padStart(64, '0');
+                const [polHex, usdcHex] = await Promise.all([
+                    callPolygonRpc('eth_getBalance', [addr, 'latest']),
+                    callPolygonRpc('eth_call', [{ to: net.usdcAddress, data: '0x70a08231' + cleanAddr }, 'latest'])
+                ]);
+
+                state.polBalance = Number(BigInt(polHex)) / 1e18;
+                state.usdcBalance = (usdcHex && usdcHex !== '0x') ? Number(BigInt(usdcHex)) / 1e6 : 0;
+
+                document.getElementById('usdcBalanceDisplay').innerHTML = `$${state.usdcBalance.toFixed(2)} <span class="text-xs font-normal">USDC</span>`;
+                document.getElementById('polBalanceDisplay').innerHTML = `${state.polBalance.toFixed(4)} <span class="text-xs font-normal">POL</span>`;
+                document.getElementById('copyAddressBtn').classList.remove('hidden');
+                showToast("Saldo berhasil disinkronkan dari Node Blockchain Polygon!", "success");
+            } catch (err) {
+                showToast("Gagal membaca saldo dari node: " + err.message, "error");
+            }
+        }
+
+        /* ==========================================================================
+           3. VERIFIKATOR TRANSAKSI ON-CHAIN (AUDIT LOG ERC-20 TRANSFER)
+           ========================================================================== */
+        async function verifyTransactionOnChain() {
+            const txHash = document.getElementById('verifyTxHashInput').value.trim();
+            const resultBox = document.getElementById('verifyResultBox');
+            const btn = document.getElementById('verifyTxBtn');
+
+            if (!/^0x[a-fA-F0-9]{64}$/.test(txHash)) {
+                showToast("Format Transaction Hash harus 0x diikuti 64 karakter hex!", "error");
+                return;
+            }
+
+            try {
+                btn.disabled = true;
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1"></i> Memeriksa Node...`;
+
+                const receipt = await callPolygonRpc('eth_getTransactionReceipt', [txHash]);
+                resultBox.classList.remove('hidden');
+
+                if (!receipt) {
+                    resultBox.innerHTML = `<div class="text-amber-400">Transaksi belum ditemukan atau masih berstatus Pending di jaringan ${NETWORKS[state.chainId].chainName}.</div>`;
+                    return;
+                }
+
+                const net = NETWORKS[state.chainId];
+                const isSuccess = receipt.status === '0x1';
+                const blockNum = parseInt(receipt.blockNumber, 16);
+
+                // Cari log event Transfer dari kontrak resmi USDC
+                const usdcLog = (receipt.logs || []).find(
+                    log => log.address.toLowerCase() === net.usdcAddress.toLowerCase() &&
+                           log.topics[0] === ERC20_TRANSFER_TOPIC
+                );
+
+                let transferHtml = `<div class="text-slate-400">Tidak ditemukan event transfer kontrak USDC resmi pada transaksi ini.</div>`;
+                if (usdcLog) {
+                    const sender = '0x' + usdcLog.topics[1].slice(26);
+                    const receiver = '0x' + usdcLog.topics[2].slice(26);
+                    const amountUsd = (Number(BigInt(usdcLog.data)) / 1e6).toFixed(2);
+                    transferHtml = `
+                        <div class="p-3 rounded-xl bg-emerald-950/40 border border-emerald-500/30 space-y-1.5 text-emerald-300">
+                            <div class="font-bold text-sm text-emerald-400"><i class="fa-solid fa-circle-check mr-1"></i> Transfer USDC Terverifikasi Sah On-Chain!</div>
+                            <div>Nominal Terkirim : <strong>$${amountUsd} USDC</strong></div>
+                            <div>Pengirim (From)   : <span class="text-slate-200">${sender}</span></div>
+                            <div>Penerima (To)     : <span class="text-slate-200">${receiver}</span></div>
+                        </div>
+                    `;
+                }
+
+                resultBox.innerHTML = `
+                    <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                        <span class="text-slate-400">Status Eksekusi Blok:</span>
+                        <span class="px-2 py-0.5 rounded ${isSuccess ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}">${isSuccess ? 'SUCCESS (0x1)' : 'REVERTED (0x0)'}</span>
+                    </div>
+                    <div class="text-slate-300">Nomor Blok: <span class="text-poly-400">#${blockNum}</span> &bull; Gas Terpakai: ${parseInt(receipt.gasUsed, 16)}</div>
+                    ${transferHtml}
+                    <div class="pt-1">
+                        <a href="${net.blockExplorerUrls[0]}/tx/${txHash}" target="_blank" class="text-poly-400 hover:underline">Lihat Bukti Resmi di PolygonScan &rarr;</a>
+                    </div>
+                `;
+            } catch (err) {
+                showToast("Error RPC: " + err.message, "error");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-shield-check mr-1"></i> Verifikasi di Blockchain`;
+            }
+        }
+
+        /* ==========================================================================
+           4. MULTI-WALLET DISCOVERY (EIP-6963) & INISIALISASI HALAMAN
+           ========================================================================== */
+        window.addEventListener('eip6963:announceProvider', (event) => {
+            const exists = discoveredProviders.some(p => p.info.uuid === event.detail.info.uuid);
+            if (!exists) discoveredProviders.push(event.detail);
+        });
+
+        window.addEventListener('load', async () => {
+            window.dispatchEvent(new Event('eip6963:requestProvider'));
+
+            if (window.location.protocol === 'file:') {
+                document.getElementById('protocolWarning').classList.remove('hidden');
+            }
+
+            // Mulai koneksi langsung ke Node RPC Polygon & refresh setiap 12 detik
+            updateLiveNodeTelemetry();
+            telemetryTimer = setInterval(updateLiveNodeTelemetry, 12000);
+
+            // Parse parameter URL Tagihan (?to=0x...&amount=15&inv=INV-01)
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('to')) {
+                document.getElementById('recipientInput').value = params.get('to');
+                document.getElementById('invMerchantAddr').value = params.get('to');
+            }
+            if (params.get('amount')) {
+                document.getElementById('amountInput').value = params.get('amount');
+            }
+            if (params.get('inv')) {
+                const tag = document.getElementById('invoiceOrderTag');
+                tag.innerText = `Order: ${params.get('inv')}`;
+                tag.classList.remove('hidden');
+            }
+            validateFormLive();
+            renderHistory();
+
+            // Auto-reconnect wallet jika sudah pernah diizinkan
+            setTimeout(async () => {
+                const defaultProv = discoveredProviders[0]?.provider || window.ethereum;
+                if (defaultProv) {
+                    try {
+                        const accounts = await defaultProv.request({ method: 'eth_accounts' });
+                        if (accounts.length > 0) {
+                            activeProvider = defaultProv;
+                            state.providerName = discoveredProviders[0]?.info?.name || 'Browser Wallet';
+                            state.account = accounts[0];
+                            document.getElementById('watchedAddressInput').value = accounts[0];
+                            attachProviderEvents(activeProvider);
+                            await syncChainFromWallet();
+                            updateWalletUI();
+                            await queryWatchedAddressBalances();
+                        }
+                    } catch (e) {}
+                }
+            }, 300);
+        });
+
+        function openWalletModal() {
+            window.dispatchEvent(new Event('eip6963:requestProvider'));
+            const container = document.getElementById('discoveredWalletsList');
+
+            if (discoveredProviders.length > 0) {
+                container.innerHTML = discoveredProviders.map((item, idx) => `
+                    <button onclick="connectSpecificProvider(${idx})" class="w-full p-3.5 rounded-2xl bg-slate-950 hover:bg-slate-800 border border-slate-800 flex items-center justify-between transition">
+                        <div class="flex items-center gap-3">
+                            <img src="${item.info.icon}" class="w-7 h-7 rounded-lg" alt="${item.info.name}">
+                            <span class="font-semibold text-sm text-white">${item.info.name}</span>
+                        </div>
+                        <span class="text-[11px] font-mono-code text-emerald-400">Terdeteksi</span>
+                    </button>
+                `).join('');
+            } else if (typeof window.ethereum !== 'undefined') {
+                container.innerHTML = `
+                    <button onclick="connectLegacyEthereum()" class="w-full p-3.5 rounded-2xl bg-slate-950 hover:bg-slate-800 border border-slate-800 flex items-center justify-between transition">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-wallet text-poly-400 text-lg"></i>
+                            <span class="font-semibold text-sm text-white">MetaMask / Injected Wallet</span>
+                        </div>
+                        <span class="text-[11px] font-mono-code text-emerald-400">Siap</span>
+                    </button>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="p-4 rounded-2xl bg-red-950/50 border border-red-500/40 text-xs text-red-200 space-y-2">
+                        <p><strong>Ekstensi Wallet Tidak Ditemukan di Browser Ini!</strong></p>
+                        <p>Pastikan MetaMask terpasang dan website dibuka melalui server lokal (<code>http://localhost:8000</code>).</p>
+                        <a href="https://metamask.io/download/" target="_blank" class="inline-block mt-1 text-emerald-400 underline font-semibold">Unduh MetaMask Resmi &rarr;</a>
+                    </div>
+                `;
+            }
+            document.getElementById('walletModal').classList.remove('hidden');
+        }
+
+        function closeWalletModal() { document.getElementById('walletModal').classList.add('hidden'); }
+        async function connectSpecificProvider(idx) {
+            const s = discoveredProviders[idx];
+            if (s) await initializeConnection(s.provider, s.info.name);
+        }
+        async function connectLegacyEthereum() { await initializeConnection(window.ethereum, 'MetaMask'); }
+
+        async function initializeConnection(provider, name) {
+            closeWalletModal();
+            try {
+                const accounts = await provider.request({ method: 'eth_requestAccounts' });
+                activeProvider = provider;
+                state.providerName = name;
+                state.account = accounts[0];
+                document.getElementById('watchedAddressInput').value = accounts[0];
+                attachProviderEvents(provider);
+                await switchPolygonNetwork(state.chainId);
+                updateWalletUI();
+                await queryWatchedAddressBalances();
+                showToast(`Terhubung dengan ${name}!`, "success");
+            } catch (err) {
+                showToast(err.message || "Koneksi dibatalkan.", "error");
+            }
+        }
+
+        function attachProviderEvents(provider) {
+            if (!provider.on) return;
+            provider.on('accountsChanged', async (accs) => {
+                state.account = accs[0] || null;
+                if (state.account) {
+                    document.getElementById('watchedAddressInput').value = state.account;
+                    await queryWatchedAddressBalances();
+                }
+                updateWalletUI();
+            });
+            provider.on('chainChanged', async () => {
+                await syncChainFromWallet();
+                await updateLiveNodeTelemetry();
+                await queryWatchedAddressBalances();
+            });
+        }
+
+        function disconnectWallet() {
+            state.account = null;
+            activeProvider = null;
+            updateWalletUI();
+            showToast("Koneksi wallet diputuskan.", "info");
+        }
+
+        async function syncChainFromWallet() {
+            if (!activeProvider) return;
+            const hexChainId = await activeProvider.request({ method: 'eth_chainId' });
+            const decChainId = parseInt(hexChainId, 16).toString();
+            if (NETWORKS[decChainId]) {
+                state.chainId = decChainId;
+                updateNetworkUI();
+            }
+        }
+
+        async function switchPolygonNetwork(targetChainId) {
+            document.getElementById('networkDropdown').classList.add('hidden');
+            const net = NETWORKS[targetChainId];
+            state.chainId = targetChainId;
+            updateNetworkUI();
+            generatePaymentLink();
+            await updateLiveNodeTelemetry();
+
+            if (!activeProvider) {
+                if (/^0x[a-fA-F0-9]{40}$/.test(document.getElementById('watchedAddressInput').value.trim())) {
+                    await queryWatchedAddressBalances();
+                }
+                return;
+            }
+
+            try {
+                await activeProvider.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: net.chainIdHex }],
+                });
+                await queryWatchedAddressBalances();
+            } catch (switchError) {
+                if (switchError.code === 4902) {
+                    try {
+                        await activeProvider.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{
+                                chainId: net.chainIdHex,
+                                chainName: net.chainName,
+                                rpcUrls: net.rpcUrls,
+                                nativeCurrency: net.nativeCurrency,
+                                blockExplorerUrls: net.blockExplorerUrls
+                            }],
+                        });
+                    } catch (e) {
+                        showToast("Gagal menambahkan jaringan ke wallet.", "error");
+                    }
+                }
+            }
+        }
+
+        async function watchUsdcAsset() {
+            if (!activeProvider) return showToast("Hubungkan ekstensi wallet terlebih dahulu!", "error");
+            const net = NETWORKS[state.chainId];
+            try {
+                await activeProvider.request({
+                    method: 'wallet_watchAsset',
+                    params: {
+                        type: 'ERC20',
+                        options: { address: net.usdcAddress, symbol: 'USDC', decimals: 6 }
+                    }
+                });
+                showToast("Token USDC ditambahkan ke wallet!", "success");
+            } catch (err) {
+                showToast("Permintaan dibatalkan.", "error");
+            }
+        }
+
+        /* ==========================================================================
+           5. ENCODER ERC-20 & EKSEKUSI TRANSAKSI REAL ON-CHAIN
+           ========================================================================== */
+        function parseUsdcToMicroUnits(amountStr) {
+            const parts = amountStr.toString().split('.');
+            const whole = parts[0] || '0';
+            const fraction = (parts[1] || '').padEnd(6, '0').slice(0, 6);
+            return BigInt(whole) * 1000000n + BigInt(fraction);
+        }
+
+        function encodeTransferData(toAddress, amountStr) {
+            const selector = '0xa9059cbb';
+            const paddedAddress = toAddress.toLowerCase().replace('0x', '').padStart(64, '0');
+            const microAmount = parseUsdcToMicroUnits(amountStr);
+            const paddedAmount = microAmount.toString(16).padStart(64, '0');
+            return selector + paddedAddress + paddedAmount;
+        }
+
+        async function executeRealTransaction() {
+            if (!state.account || !activeProvider) {
+                openWalletModal();
+                return;
+            }
+
+            const recipient = document.getElementById('recipientInput').value.trim();
+            const amountStr = document.getElementById('amountInput').value.trim();
+            const amountNum = parseFloat(amountStr);
+
+            if (!/^0x[a-fA-F0-9]{40}$/.test(recipient)) return showToast("Alamat penerima tidak valid!", "error");
+            if (isNaN(amountNum) || amountNum <= 0) return showToast("Masukkan nominal USDC yang valid!", "error");
+            if (state.usdcBalance < amountNum) return showToast(`Saldo USDC kurang (Tersedia: $${state.usdcBalance.toFixed(2)})`, "error");
+            if (state.polBalance < 0.0005) return showToast("Saldo POL untuk Gas Fee tidak mencukupi!", "error");
+
+            const net = NETWORKS[state.chainId];
+            const callData = encodeTransferData(recipient, amountStr);
+            const btn = document.getElementById('paySubmitBtn');
+
+            try {
+                btn.disabled = true;
+                btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menunggu Tanda Tangan Wallet...`;
+
+                const txHash = await activeProvider.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        from: state.account,
+                        to: net.usdcAddress,
+                        data: callData
+                    }]
+                });
+
+                showToast("Transaksi terkirim! Memverifikasi blok di Node RPC Polygon...", "info");
+                btn.innerHTML = `<i class="fa-solid fa-circle-notch fa-spin"></i> Menunggu Konfirmasi Blok...`;
+
+                const receipt = await waitForTransactionReceiptRpc(txHash);
+                const isSuccess = receipt && receipt.status === '0x1';
+
+                const txRecord = {
+                    hash: txHash,
+                    to: recipient,
+                    amount: amountNum.toFixed(2),
+                    network: net.chainName,
+                    explorer: net.blockExplorerUrls[0],
+                    status: isSuccess ? 'Confirmed' : 'Failed',
+                    time: new Date().toLocaleString('id-ID')
+                };
+
+                state.history.unshift(txRecord);
+                localStorage.setItem('nusapay_v3_history', JSON.stringify(state.history));
+                renderHistory();
+                await queryWatchedAddressBalances();
+
+                if (isSuccess) {
+                    showToast(`Pembayaran $${amountNum.toFixed(2)} USDC Sukses Terkonfirmasi!`, "success");
+                } else {
+                    showToast("Transaksi gagal (reverted) di jaringan.", "error");
+                }
+            } catch (err) {
+                showToast(err.message || "Transaksi dibatalkan.", "error");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> <span>Kirim Pembayaran USDC Sekarang</span>`;
+            }
+        }
+
+        async function waitForTransactionReceiptRpc(txHash) {
+            for (let i = 0; i < 30; i++) {
+                const receipt = await callPolygonRpc('eth_getTransactionReceipt', [txHash]);
+                if (receipt !== null) return receipt;
+                await new Promise(r => setTimeout(r, 2000));
+            }
+            return null;
+        }
+
+        /* ==========================================================================
+           6. GENERATOR LINK TAGIHAN, QR EIP-681 & HELPERS UI
+           ========================================================================== */
+        function generatePaymentLink() {
+            const addr = document.getElementById('invMerchantAddr').value.trim();
+            const amt = document.getElementById('invAmount').value.trim() || '10.00';
+            const inv = document.getElementById('invOrderId').value.trim() || 'INV-01';
+            const net = NETWORKS[state.chainId];
+
+            if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) {
+                document.getElementById('generatedUrlBox').innerText = "Masukkan alamat 0x... yang valid terlebih dahulu";
+                return;
+            }
+
+            const baseUrl = window.location.href.split('?')[0];
+            const shareUrl = `${baseUrl}?to=${addr}&amount=${amt}&inv=${encodeURIComponent(inv)}`;
+            document.getElementById('generatedUrlBox').innerText = shareUrl;
+
+            const microUnits = parseUsdcToMicroUnits(amt).toString();
+            const eip681Uri = `ethereum:${net.usdcAddress}@${state.chainId}/transfer?address=${addr}&uint256=${microUnits}`;
+            document.getElementById('eip681QrImage').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(eip681Uri)}`;
+        }
+
+        function copyGeneratedLink() {
+            const text = document.getElementById('generatedUrlBox').innerText;
+            if (text.startsWith('http')) copyText(text, "Link tagihan disalin!");
+        }
+
+        function applyPreset(name, price) {
+            document.getElementById('amountInput').value = price;
+            const tag = document.getElementById('invoiceOrderTag');
+            tag.innerText = name;
+            tag.classList.remove('hidden');
+            validateFormLive();
+        }
+
+        function switchTab(tab) {
+            ['checkout', 'verifier', 'invoice'].forEach(t => {
+                const panelId = 'tab' + t.charAt(0).toUpperCase() + t.slice(1);
+                const btnId = 'tabBtn' + t.charAt(0).toUpperCase() + t.slice(1);
+                document.getElementById(panelId).classList.toggle('hidden', t !== tab);
+                document.getElementById(btnId).className = t === tab
+                    ? "px-4 py-3 text-xs sm:text-sm font-semibold border-b-2 border-emerald-500 text-emerald-400 flex items-center gap-2 whitespace-nowrap"
+                    : "px-4 py-3 text-xs sm:text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2 whitespace-nowrap";
+            });
+
+            if (tab === 'invoice') {
+                const currentAddr = state.account || document.getElementById('watchedAddressInput').value.trim();
+                if (/^0x[a-fA-F0-9]{40}$/.test(currentAddr) && !document.getElementById('invMerchantAddr').value) {
+                    document.getElementById('invMerchantAddr').value = currentAddr;
+                    generatePaymentLink();
+                }
+            }
+        }
+
+        function updateNetworkUI() {
+            const net = NETWORKS[state.chainId];
+            document.getElementById('netLabelName').innerText = net.chainName.replace('Polygon ', '');
+            document.getElementById('netDot').className = state.chainId === '137' ? 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse' : 'w-2 h-2 rounded-full bg-amber-400 animate-pulse';
+            document.getElementById('checkAmoy').classList.toggle('hidden', state.chainId !== '80002');
+            document.getElementById('checkMainnet').classList.toggle('hidden', state.chainId !== '137');
+            document.getElementById('explorerBtn').href = net.blockExplorerUrls[0];
+            document.getElementById('usdcContractDisplay').innerText = `Kontrak: ${net.usdcAddress.slice(0, 6)}...${net.usdcAddress.slice(-4)}`;
+        }
+
+        function updateWalletUI() {
+            const badge = document.getElementById('walletStateBadge');
+            const discBtn = document.getElementById('disconnectBtn');
+
+            if (state.account) {
+                const shortAddr = `${state.account.slice(0, 6)}...${state.account.slice(-4)}`;
+                document.getElementById('connectBtnText').innerText = shortAddr;
+                document.getElementById('copyAddressBtn').classList.remove('hidden');
+                discBtn.classList.remove('hidden');
+                badge.className = "px-2 py-0.5 rounded text-[10px] font-mono-code bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+                badge.innerText = `Terhubung (${state.providerName})`;
+            } else {
+                document.getElementById('connectBtnText').innerText = "Hubungkan Wallet";
+                discBtn.classList.add('hidden');
+                badge.className = "px-2 py-0.5 rounded text-[10px] font-mono-code bg-slate-800 text-slate-300 border border-slate-700";
+                badge.innerText = "Mode Watch / Belum Sign-In";
+            }
+        }
+
+        function validateFormLive() {
+            const addr = document.getElementById('recipientInput').value.trim();
+            const amt = document.getElementById('amountInput').value.trim();
+            const errEl = document.getElementById('addressErrorMsg');
+
+            if (addr && !/^0x[a-fA-F0-9]{40}$/.test(addr)) {
+                errEl.innerText = "Format alamat harus 0x diikuti 40 karakter heksadesimal.";
+                errEl.classList.remove('hidden');
+            } else {
+                errEl.classList.add('hidden');
+            }
+
+            if (/^0x[a-fA-F0-9]{40}$/.test(addr) && parseFloat(amt) > 0) {
+                document.getElementById('liveCalldataBox').innerText = encodeTransferData(addr, amt);
+            } else {
+                document.getElementById('liveCalldataBox').innerText = "0xa9059cbb [Lengkapi alamat penerima & nominal]";
+            }
+        }
+
+        function renderHistory() {
+            const container = document.getElementById('historyList');
+            if (state.history.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-500 italic text-center py-8">Belum ada transaksi tercatat.</p>`;
+                return;
+            }
+            container.innerHTML = state.history.map(tx => `
+                <div class="bg-slate-950 p-3.5 rounded-xl border border-slate-800 text-xs space-y-1.5">
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-emerald-400 font-mono-code">$${tx.amount} USDC</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] ${tx.status === 'Confirmed' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}">${tx.status}</span>
+                    </div>
+                    <div class="text-slate-400 font-mono-code text-[11px]">Ke: ${tx.to.slice(0, 8)}...${tx.to.slice(-6)}</div>
+                    <div class="flex justify-between items-center text-[10px] text-slate-500 pt-1 border-t border-slate-900">
+                        <span>${tx.network} &bull; ${tx.time}</span>
+                        <div class="flex gap-2">
+                            <button onclick="quickInspectHash('${tx.hash}')" class="text-emerald-400 hover:underline">Audit RPC</button>
+                            <a href="${tx.explorer}/tx/${tx.hash}" target="_blank" class="text-poly-400 hover:underline">Explorer</a>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function quickInspectHash(hash) {
+            switchTab('verifier');
+            document.getElementById('verifyTxHashInput').value = hash;
+            verifyTransactionOnChain();
+        }
+
+        function exportHistoryCSV() {
+            if (state.history.length === 0) return showToast("Belum ada riwayat transaksi untuk diekspor.", "error");
+            const headers = ["Waktu", "Jaringan", "Penerima", "Nominal_USDC", "Status", "TxHash"];
+            const rows = state.history.map(t => [t.time, t.network, t.to, t.amount, t.status, t.hash]);
+            const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(",")).join("\n");
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `NusaPay_Laporan_USDC_${Date.now()}.csv`;
+            a.click();
+        }
+
+        function toggleNetworkDropdown() { document.getElementById('networkDropdown').classList.toggle('hidden'); }
+        function setMyAddressAsMerchant() {
+            const addr = state.account || document.getElementById('watchedAddressInput').value.trim();
+            if (!/^0x[a-fA-F0-9]{40}$/.test(addr)) return showToast("Hubungkan wallet atau isi alamat aktif dulu.", "error");
+            document.getElementById('recipientInput').value = addr;
+            validateFormLive();
+        }
+        function copyUserAddress() {
+            const addr = document.getElementById('watchedAddressInput').value.trim();
+            if (addr) copyText(addr, "Alamat disalin!");
+        }
+        function copyText(text, msg) { navigator.clipboard.writeText(text); showToast(msg, "success"); }
+        function clearHistory() {
+            state.history = [];
+            localStorage.removeItem('nusapay_v3_history');
+            renderHistory();
+        }
+        function showToast(msg, type = "info") {
+            const container = document.getElementById('toastContainer');
+            const el = document.createElement('div');
+            const color = type === "success" ? "border-emerald-500 text-emerald-300" : type === "error" ? "border-red-500 text-red-300" : "border-slate-700 text-slate-200";
+            el.className = `pointer-events-auto bg-slate-900 border ${color} p-3 rounded-xl shadow-xl text-xs`;
+            el.innerText = msg;
+            container.appendChild(el);
+            setTimeout(() => el.remove(), 4000);
+        }
+    </script>
+</body>
+</html>
